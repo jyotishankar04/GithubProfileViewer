@@ -8,6 +8,8 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+import { FaLock } from "react-icons/fa";
+import { ImUnlocked } from "react-icons/im";
 
 function App() {
   return (
@@ -15,7 +17,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/user/:user" element={<ProfileDetails />} />
-        {/* <Route path="/repos" element={<Repos />} /> */}
+        <Route path="/user/:user/repos" element={<Repos />} />
       </Routes>
     </>
   );
@@ -72,13 +74,21 @@ function ProfileDetails() {
           </h1>
           <h1 className="text-md text-zinc-200 ">{data && data.login}</h1>
           <p className="text-gray-400 text-xs">{data && data.bio}</p>
-          <a
-            className="px-6 bg-blue-800 py-2 rounded-lg "
-            href={data && data.html_url}
-            target="_blank"
-          >
-            Visit Profile
-          </a>
+          <div className="flex gap-5 p-2">
+            <a
+              className="px-6 bg-blue-800 py-2 rounded-lg "
+              href={data && data.html_url}
+              target="_blank"
+            >
+              Visit Profile
+            </a>
+            <Link
+              to={`/user/${data && data.login}/repos`}
+              className="px-6 bg-blue-800 py-2 rounded-lg "
+            >
+              See Repos
+            </Link>
+          </div>
           <h1>Company : {data && data.company}</h1>
           <h1>Blog : {data && data.blog}</h1>
           <p>Location: {data && data.location}</p>
@@ -96,7 +106,9 @@ function ProfileDetails() {
       </div>
       <div className="w-[90%] mb-7 flex gap-5 bg-gray-950 rounded-lg">
         <div className="w-[50%]   flex gap-2  flex-col   p-3">
-          <h1>Followers</h1>
+          <h1 className="w-full text-3xl font-semibold text-center">
+            Followers
+          </h1>
           {Array.isArray(followers)
             ? followers.map((item, index) => {
                 return (
@@ -112,7 +124,9 @@ function ProfileDetails() {
             : "Empty"}
         </div>
         <div className="w-[50%]   flex gap-2  flex-col   p-3">
-          <h1>Following</h1>
+          <h1 className="w-full text-3xl font-semibold text-center">
+            Following
+          </h1>
           {Array.isArray(following)
             ? following.map((item, index) => {
                 return (
@@ -133,9 +147,84 @@ function ProfileDetails() {
 }
 
 function Repos() {
-  return <>kfdskfhk</>;
+  const { user } = useParams();
+  const [repos, setRepos] = useState();
+  const navigate = useNavigate();
+  function goBack() {
+    navigate(-1);
+  }
+  async function getRepos() {
+    const responce = await axios.get(
+      `https://api.github.com/users/${user}/repos`
+    );
+
+    setRepos(responce.data);
+  }
+  useEffect(() => {
+    getRepos();
+
+    // console.log(repos[1].private);
+  }, [user]);
+  return (
+    <div className="w-full text-white pt-2 gap-5 h-screen overflow-auto bg-gray-800 flex flex-col justify-start items-center">
+      <div>
+        <button
+          onClick={goBack}
+          className="bg-white px-9 py-2 rounded-xl font-semibold text-gray-900"
+        >
+          Go Back
+        </button>
+      </div>
+      <div className="w-full flex justify-center ">
+        <div className="max-w-[90%] mb-7 flex gap-5 flex-wrap justify-center items-start bg-gray-950 rounded-lg py-4 px-2 ">
+          {Array.isArray(repos) ? (
+            repos.map((repo, index) => (
+              <RepoCard
+                key={index}
+                name={repo.name}
+                privatee={repo.private}
+                login={user}
+                avatar_url={repo.owner.avatar_url}
+                html_url={repo.owner.html_url}
+              />
+            ))
+          ) : (
+            <Loader />
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
+function Loader() {
+  return (
+    <div className="">
+      <div className="m-10 w-[50px] h-[50px] border-2 rounded-full animate-spin border-x-transparent"></div>
+    </div>
+  );
+}
+function RepoCard({ name, login, avatar_url, privatee, html_url }) {
+  const url = html_url + "/" + name;
+  return (
+    <>
+      <a
+        href={url}
+        target="_blank"
+        className="w-[200px] h-[200px] flex flex-col justify-between px-2 py-1 items-center rounded-lg  border-2 border-purple-950 cursor-pointer"
+      >
+        <div className=" h-full flex justify-center items-center text-xl w-full overflow-auto mb-4">
+          <h1 className="w-full text-center">{name}</h1>
+        </div>
+        <div className="h-[25px] w-full flex justify-start gap-4 px-6 items-center ">
+          <img src={avatar_url} className="h-full rounded-full" />
+          <h1 className=" text-xs text-gray-400"> {login}</h1>
+          <div>{privatee ? <FaLock /> : <ImUnlocked />}</div>
+        </div>
+      </a>
+    </>
+  );
+}
 function FollowCard({ avatar_url, name, login, html_url }) {
   // console.log(name);
   return (
@@ -158,6 +247,7 @@ function Home() {
   const inputRef = useRef();
   async function submitHandle() {
     const name = inputRef.current.value;
+    // console.log(name);
     const responce = await axios.get(`https://api.github.com/users/${name}`);
     // console.log(responce.data);
     setUser(responce.data);
